@@ -1,0 +1,38 @@
+// 1. FORÇA O SCRIPT A IR PARA O CONTEXTO REAL DA PÁGINA (MAIN WORLD)
+    // Se o ScriptCat tentar rodar isolado, esse bloco se auto-injeta na página real
+    if (typeof unsafeWindow !== 'undefined' && window !== unsafeWindow) {
+        const script = document.createElement('script');
+        script.textContent = `(${arguments.callee.toString()})();`;
+        document.documentElement.appendChild(script);
+        script.remove();
+        return;
+    }
+
+    // 2. ATALHO: INTERCEPTA O EVENTO DE "PASTE" ANTES DO SITE RECEBER
+    // O 'true' no final faz o seu script capturar o Ctrl+V antes de qualquer trava do site
+    window.addEventListener('paste', function(e) {
+        // Permite que a ação aconteça livremente
+        e.stopPropagation(); 
+    }, true);
+
+    // 3. SEGUNDA LINHA DE DEFESA: NEUTRALIZA AS TRAVAS TRADICIONAIS
+    document.addEventListener('DOMContentLoaded', () => {
+        // Procura todas as caixas de texto atuais e futuras
+        const limparBloqueios = () => {
+            document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(campo => {
+                if (campo.onpaste !== null) {
+                    campo.onpaste = null;
+                }
+            });
+        };
+
+        // Roda ao carregar a página
+        limparBloqueios();
+        
+        // Fica vigiando a página (caso o site crie caixas de texto novas depois)
+        const observador = new MutationObserver(limparBloqueios);
+        observador.observe(document.body, { childList: true, subtree: true });
+    });
+})();
+// feito por Gustavo e gemini
+alert("ctrl c e ctrl v desbloqueados")
